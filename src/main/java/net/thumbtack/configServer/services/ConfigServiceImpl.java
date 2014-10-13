@@ -1,6 +1,9 @@
 package net.thumbtack.configServer.services;
 
-import net.thumbtack.configServer.thrift.generated.*;
+import net.thumbtack.configServer.thrift.ConfigService;
+import net.thumbtack.configServer.thrift.DuplicateKeyException;
+import net.thumbtack.configServer.thrift.InvalidKeyException;
+import net.thumbtack.configServer.thrift.UnknownKeyException;
 import org.apache.thrift.TException;
 
 import java.util.List;
@@ -8,7 +11,7 @@ import java.util.List;
 public class ConfigServiceImpl implements ConfigService.Iface {
     @Override
     public void create(String key) throws DuplicateKeyException, InvalidKeyException, TException {
-
+        createWithValue(key, "");
     }
 
     @Override

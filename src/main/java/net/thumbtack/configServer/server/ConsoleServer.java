@@ -1,7 +1,7 @@
 package net.thumbtack.configServer.server;
 
 import net.thumbtack.configServer.services.ConfigServiceImpl;
-import net.thumbtack.configServer.thrift.generated.ConfigService;
+import net.thumbtack.configServer.thrift.ConfigService;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;

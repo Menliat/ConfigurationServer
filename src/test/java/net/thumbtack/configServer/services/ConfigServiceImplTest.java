@@ -1,19 +1,16 @@
 package net.thumbtack.configServer.services;
 
-import net.thumbtack.configServer.thrift.generated.DuplicateKeyException;
-import net.thumbtack.configServer.thrift.generated.InvalidKeyException;
-import net.thumbtack.configServer.thrift.generated.UnknownKeyException;
+import net.thumbtack.configServer.thrift.DuplicateKeyException;
+import net.thumbtack.configServer.thrift.InvalidKeyException;
+import net.thumbtack.configServer.thrift.UnknownKeyException;
 import org.apache.thrift.TException;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static junit.framework.Assert.assertFalse;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;

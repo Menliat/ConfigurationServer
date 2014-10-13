@@ -1,6 +1,6 @@
 package net.thumbtack.configServer.client;
 
-import net.thumbtack.configServer.thrift.generated.ConfigService;
+import net.thumbtack.configServer.thrift.ConfigService;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
