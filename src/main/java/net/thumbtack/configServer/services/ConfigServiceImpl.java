@@ -28,7 +28,7 @@ public class ConfigServiceImpl implements ConfigService.Iface {
 
     @Override
     public String getValue(String key) throws UnknownKeyException, InvalidKeyException, TException {
-        return null;
+        return "ololo";
     }
 
     @Override
