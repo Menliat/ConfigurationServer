@@ -10,19 +10,18 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static junit.framework.Assert.assertFalse;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class ConfigServiceImplTest {
+public class InMemoryConfigServiceTest {
 
-    private ConfigServiceImpl service;
+    private InMemoryConfigService service;
 
     @Before
     public void SetUp() {
-        service = new ConfigServiceImpl();
+        service = new InMemoryConfigService();
     }
 
     @Test
@@ -150,6 +149,6 @@ public class ConfigServiceImplTest {
 
         List<String> children = service.getChildren("parent");
 
-        assertTrue(children.isEmpty());
+        assertThat(children, is(empty()));
     }
 }

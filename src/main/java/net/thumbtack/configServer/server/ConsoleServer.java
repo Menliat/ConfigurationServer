@@ -1,6 +1,6 @@
 package net.thumbtack.configServer.server;
 
-import net.thumbtack.configServer.services.ConfigServiceImpl;
+import net.thumbtack.configServer.services.InMemoryConfigService;
 import net.thumbtack.configServer.thrift.ConfigService;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
@@ -17,7 +17,7 @@ public class ConsoleServer implements Runnable {
     public void run() {
         try {
             TServerSocket serverTransport = new TServerSocket(PORT);
-            ConfigService.Processor processor = new ConfigService.Processor(new ConfigServiceImpl());
+            ConfigService.Processor processor = new ConfigService.Processor(new InMemoryConfigService());
             TServer server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).processor(processor));
 
             log.info("Starting server on port " + PORT);
