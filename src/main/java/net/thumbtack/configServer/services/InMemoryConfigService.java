@@ -8,6 +8,7 @@ import net.thumbtack.configServer.thrift.InvalidKeyException;
 import net.thumbtack.configServer.thrift.UnknownKeyException;
 import org.apache.thrift.TException;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -52,17 +53,30 @@ public class InMemoryConfigService implements ConfigService.Iface {
 
     @Override
     public String getValue(final String key) throws UnknownKeyException, InvalidKeyException, TException {
-        return "ololo";
+        Node found = findNode(key);
+
+        return found.getValue();
     }
 
     @Override
     public void setValue(final String key, final String value) throws UnknownKeyException, InvalidKeyException, TException {
+        Node found = findNode(key);
 
+        found.setValue(value);
     }
 
     @Override
     public List<String> getChildren(final String key) throws UnknownKeyException, InvalidKeyException, TException {
-        return null;
+        Node found = findNode(key);
+        List<String> childrenNames = found.getChildrenNames();
+        Collections.sort(childrenNames);
+
+        return childrenNames;
+    }
+
+    private Node findNode(String key) throws InvalidKeyException, UnknownKeyException {
+        NodePath path = new NodePath(key);
+        return root.findNode(path);
     }
 }
 

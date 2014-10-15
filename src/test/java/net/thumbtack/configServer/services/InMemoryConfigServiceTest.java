@@ -43,7 +43,7 @@ public class InMemoryConfigServiceTest {
     }
 
     @Test
-    public void whenValueIsSpecified_Create_ShouldUseEmptyStringAsValue() throws TException {
+    public void whenValueIsSpecified_Create_ShouldUseThisValue() throws TException {
         service.createWithValue("key", "value");
 
         final String value = service.getValue("key");

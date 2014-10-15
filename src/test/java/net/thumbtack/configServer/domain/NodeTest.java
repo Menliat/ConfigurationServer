@@ -8,8 +8,11 @@ import net.thumbtack.configServer.thrift.UnknownKeyException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.*;
 
 @RunWith(JUnitParamsRunner.class)
@@ -122,6 +125,15 @@ public class NodeTest {
         Node root = new Node("root");
 
         assertNodesExistence(true, root, "");
+    }
+
+    @Test
+    public void testGetChildrenNames() {
+        Node node = new Node("root", new Node("child1"), new Node("child3"), new Node("child2"));
+
+        List<String> names = node.getChildrenNames();
+
+        assertThat(names, containsInAnyOrder("child1", "child2", "child3"));
     }
 
     private void assertNodesExistence(boolean expected, Node root, String... paths) throws InvalidKeyException {

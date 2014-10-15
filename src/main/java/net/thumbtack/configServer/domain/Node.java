@@ -5,6 +5,8 @@ import net.thumbtack.configServer.thrift.DuplicateKeyException;
 import net.thumbtack.configServer.thrift.InvalidKeyException;
 import net.thumbtack.configServer.thrift.UnknownKeyException;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Node {
     private final String name;
     private ConcurrentHashMap<String, Node> children;
-    private final String value;
+    private String value;
 
     public Node(final String name, final String value) {
         this.name = name;
@@ -41,6 +43,7 @@ public class Node {
      */
     public Node(final String name) { this(name, ""); }
 
+    public void setValue(String value) { this.value = value; }
     public String getValue() {
         return value;
     }
@@ -95,6 +98,13 @@ public class Node {
      */
     public void insert(final NodePath relativePath, final Node node) throws DuplicateKeyException {
         insert(relativePath.getLevelsIterator(), node);
+    }
+
+    /**
+     * @return set of children names. There is no order guaranteed.
+     */
+    public List<String> getChildrenNames() {
+        return Collections.list(children.keys());
     }
 
     private Node getChild(String name) throws UnknownKeyException {
