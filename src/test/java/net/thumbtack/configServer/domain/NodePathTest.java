@@ -52,7 +52,7 @@ public class NodePathTest {
     }
 
     @Test
-    @Parameters({"a/b/c, a/b", ","})
+    @Parameters({"a/b/c, a/b", ",", "a,"})
     public void testGetPathExceptLastLevel(String givenPath, String expectedPath) throws InvalidKeyException {
         final NodePath path = new NodePath(givenPath);
 

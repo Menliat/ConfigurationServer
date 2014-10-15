@@ -33,11 +33,6 @@ public class InMemoryConfigServiceTest {
         } catch (DuplicateKeyException ex) { }
     }
 
-    @Test (expected = InvalidKeyException.class)
-    public void whenKeyContainsLevelWithEmptyName_Create_ShouldThrowInvalidKeyException() throws TException {
-        service.create("key////");
-    }
-
     @Test
     public void whenValueIsNotSpecified_Create_ShouldUseEmptyStringAsValue() throws TException {
         service.create("key");
@@ -60,14 +55,14 @@ public class InMemoryConfigServiceTest {
     public void whenNodeIsCreated_Exists_ShouldReturnTrue() throws TException {
         service.create("a/b/c");
 
-        final Boolean exists = service.exists("a/b/c");
+        final boolean exists = service.exists("a/b/c");
 
         assertThat(exists, is(true));
     }
 
     @Test
     public void whenNodeIsNotCreated_Exists_ShouldReturnFalse() throws TException {
-        final Boolean exists = service.exists("a/b/c");
+        final boolean exists = service.exists("a/b/c");
 
         assertThat(exists, is(false));
     }
@@ -82,7 +77,7 @@ public class InMemoryConfigServiceTest {
         service.create("key");
 
         service.remove("key");
-        final Boolean exists = service.exists("key");
+        final boolean exists = service.exists("key");
 
         assertThat(exists, is(false));
     }
@@ -93,7 +88,7 @@ public class InMemoryConfigServiceTest {
         service.create("parent/child3/child4");
 
         service.remove("parent");
-        final Boolean childNodesExists = service.exists("child1") && service.exists("child2")
+        final boolean childNodesExists = service.exists("child1") && service.exists("child2")
                                       && service.exists("child3") && service.exists("child4");
 
         assertThat(childNodesExists, is(false));

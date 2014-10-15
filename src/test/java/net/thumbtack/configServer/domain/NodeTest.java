@@ -16,37 +16,6 @@ import static org.junit.Assert.*;
 public class NodeTest {
 
     @Test
-    public void whenNodeExists_Insert_ShouldThrowDuplicateKeyException() throws InvalidKeyException, UnknownKeyException {
-        Node root = new Node("root", new Node("parent", new Node("child", "old value")));
-        NodePath pathToInsert = new NodePath("parent");
-        Node nodeToInsert = new Node("child", "new value");
-
-        try {
-            root.insert(pathToInsert, nodeToInsert);
-            fail("Node with given path and name already exists - should throw exception.");
-        } catch (DuplicateKeyException ex) {
-            Node child = root.getChild("parent").getChild("child");
-            assertThat(child.getValue(), is("old value"));
-        }
-    }
-
-    @Test
-    public void whenChildNodeWithGivenNameExists_GetChild_ShouldReturnHim() throws UnknownKeyException {
-        Node root = new Node("root", new Node("child"));
-
-        Node child = root.getChild("child");
-
-        assertThat(child, is(notNullValue()));
-    }
-
-    @Test (expected = UnknownKeyException.class)
-    public void whenChildNodeDoesNotExist_GetChild_ShouldThrowUnknownKeyException() throws UnknownKeyException {
-        Node root = new Node("root");
-
-        root.getChild("child");
-    }
-
-    @Test
     public void whenNodeWithGivenPathExists_FindNode_ShouldReturnHim() throws UnknownKeyException, InvalidKeyException {
         Node root = new Node("root", new Node("parent", new Node("child")));
 
@@ -63,6 +32,15 @@ public class NodeTest {
     }
 
     @Test
+    public void whenPathIsEmpty_FindNode_ShouldReturnTheRoot() throws InvalidKeyException, UnknownKeyException {
+        Node root = new Node("root");
+
+        Node found = root.findNode(new NodePath(""));
+
+        assertThat(found, is(root));
+    }
+
+    @Test
     @Parameters({"child", "a/b/c", "root/root/root", "a/b/a" })
     public void testInsertions(String pathToInsert) throws InvalidKeyException, DuplicateKeyException, UnknownKeyException {
         Node root = new Node("root");
@@ -72,7 +50,84 @@ public class NodeTest {
 
         root.insert(pathToParent, inserted);
 
-        Node foundOne = root.findNode(path);
-        assertThat(foundOne, is(notNullValue()));
+        assertNodesExistence(true, root, pathToInsert);
+    }
+
+    @Test
+    public void whenNodeExists_Insert_ShouldThrowDuplicateKeyException() throws InvalidKeyException, UnknownKeyException {
+        Node root = new Node("root", new Node("parent", new Node("child", "old value")));
+        NodePath pathToInsert = new NodePath("parent");
+        Node nodeToInsert = new Node("child", "new value");
+
+        try {
+            root.insert(pathToInsert, nodeToInsert);
+            fail("Node with given path and name already exists - should throw exception.");
+        } catch (DuplicateKeyException ex) {
+            Node child = root.findNode(new NodePath("parent/child"));
+            assertThat(child.getValue(), is("old value"));
+        }
+    }
+
+    @Test
+    public void testInsertionIntoSubtree() throws InvalidKeyException, DuplicateKeyException {
+        Node root = new Node("root", new Node("subtree", new Node("child")));
+        Node inserted = new Node("child2");
+
+        root.insert(new NodePath("subtree"), inserted);
+
+        assertNodesExistence(true, root, "subtree/child2");
+    }
+
+    @Test
+    public void whenLeafGiven_Remove_ShouldMakeHimNotExisting() throws InvalidKeyException, UnknownKeyException {
+        Node root = new Node("root", new Node("child"));
+
+        root.remove(new NodePath("child"));
+
+        assertNodesExistence(false, root, "child");
+    }
+
+    @Test
+    public void whenPathToSubtreeGiven_Remove_ShouldDeleteAllNodesInTheGivenTree() throws InvalidKeyException, UnknownKeyException {
+        Node root = new Node("root", new Node("subtree-root", new Node("child1"), new Node("child2")));
+
+        root.remove(new NodePath("subtree-root"));
+
+        assertNodesExistence(false, root, "subtree-root", "subtree-root/child1", "subtree-root/child2");
+    }
+
+    @Test(expected = UnknownKeyException.class)
+    public void whenRemovingNodeDoesNotExist_Remove_ShouldThrowUnknownKeyException() throws InvalidKeyException, UnknownKeyException {
+        Node root = new Node("root", new Node("subtree"));
+
+        root.remove(new NodePath("subtree/child"));
+    }
+
+    @Test
+    public void whenNodeExists_Exists_ShouldReturnTrue() throws InvalidKeyException {
+        Node root = new Node("root", new Node("parent", new Node("child")));
+
+        assertNodesExistence(true, root, "parent/child");
+    }
+
+    @Test
+    public void whenNodeDoesNotExists_Exists_ShouldReturnFalse() throws InvalidKeyException {
+        Node root = new Node("root", new Node("parent"));
+
+        assertNodesExistence(false, root, "parent/child");
+    }
+
+    @Test
+    public void whenPathPointsToRoot_Exists_ShouldReturnTrue() throws InvalidKeyException {
+        Node root = new Node("root");
+
+        assertNodesExistence(true, root, "");
+    }
+
+    private void assertNodesExistence(boolean expected, Node root, String... paths) throws InvalidKeyException {
+        for (String path : paths) {
+            boolean exists = root.exists(new NodePath(path));
+            assertThat(exists, is(expected));
+        }
     }
 }

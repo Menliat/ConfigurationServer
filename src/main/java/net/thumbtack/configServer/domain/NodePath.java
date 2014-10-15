@@ -1,5 +1,6 @@
 package net.thumbtack.configServer.domain;
 
+import com.google.common.base.Strings;
 import net.thumbtack.configServer.thrift.InvalidKeyException;
 import org.apache.http.annotation.Immutable;
 
@@ -66,10 +67,14 @@ public class NodePath {
     public NodePath getPathExceptLastLevel() {
         final Path parent = path.getParent();
         if (parent == null) {
-            return this;
+            return new NodePath(Paths.get(""));
         } else {
             return new NodePath(parent);
         }
+    }
+
+    public boolean isEmpty() {
+        return Strings.isNullOrEmpty(path.toString());
     }
 
     @Override

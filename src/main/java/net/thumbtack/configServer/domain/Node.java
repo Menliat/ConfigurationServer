@@ -41,33 +41,47 @@ public class Node {
      */
     public Node(final String name) { this(name, ""); }
 
-    /**
-     * Returns a child of the current node.
-     * @param name child name
-     * @return child node if presented
-     * @throws UnknownKeyException if there is no child with the given name.
-     */
-    public Node getChild(String name) throws UnknownKeyException {
-        Node child = children.get(name);
-        if (child == null) {
-            throw new UnknownKeyException(String.format("There is no child with key %s", name));
-        } else {
-            return child;
-        }
+    public String getValue() {
+        return value;
     }
 
     /**
      * Finds the node in tree.
-     * @param path path to the required node.
+     * @param path path to the required node
      * @return the required node if found
      * @throws UnknownKeyException if there is no node with given path
      */
     public Node findNode(NodePath path) throws UnknownKeyException {
-        return find(path.getLevelsIterator());
+        return find(path, true);
     }
 
-    public String getValue() {
-        return value;
+    /**
+     * Removes the node with the given path.
+     * @param path path to removing node
+     * @throws UnknownKeyException if there is no node with given path
+     * @throws InvalidKeyException if you are trying to remove the root
+     */
+    public void remove(NodePath path) throws UnknownKeyException, InvalidKeyException {
+        if (path.isEmpty()) {
+            throw new InvalidKeyException("Can't delete root");
+        } else {
+            Node parent = findNode(path.getPathExceptLastLevel());
+            parent.removeChild(path.getLastLevel());
+        }
+    }
+
+    /**
+     * Return whether the node with given path exists.
+     * @param path path to node
+     * @return true if node exists
+     */
+    public boolean exists(NodePath path) {
+        try {
+            return find(path, false) != null;
+        } catch (UnknownKeyException ex) {
+            // this code should never be executed because we don't validate existence of node in find method.
+            return false;
+        }
     }
 
     /**
@@ -75,7 +89,7 @@ public class Node {
      * If parent nodes in the hierarchy does not exist, it will create them.
      * This method is thread-safe. It is possible to insert the node into some subtree
      * while other thread can delete this subtree entirely.
-     * @param relativePath path where to insert the given node. This path is relative to the current node.
+     * @param relativePath path where to insert the given node.
      * @param node node to insert
      * @throws DuplicateKeyException if tree already has a node with the same path and name
      */
@@ -83,36 +97,63 @@ public class Node {
         insert(relativePath.getLevelsIterator(), node);
     }
 
-    private Node find(ListIterator<String> levels) throws UnknownKeyException {
+    private Node getChild(String name) throws UnknownKeyException {
+        Node child = children.get(name);
+        ensureExisting(child, name);
+
+        return child;
+    }
+
+    private void removeChild(String name) throws UnknownKeyException {
+        Node child = children.remove(name);
+        ensureExisting(child, name);
+    }
+
+    private Node find(NodePath path, boolean validateExistence) throws UnknownKeyException {
+        if (path.isEmpty()) {
+            return this;
+        } else {
+            return find(path.getLevelsIterator(), validateExistence);
+        }
+    }
+
+    private Node find(ListIterator<String> levels, boolean validateExistence) throws UnknownKeyException {
         if (levels.hasNext()) {
             final String currentLevel = levels.next();
             Node next = getChild(currentLevel);
 
-            return next.find(levels);
+            if (validateExistence) {
+                ensureExisting(next, currentLevel);
+            }
+
+            return next == null ? next : next.find(levels, validateExistence);
         } else {
             return this;
         }
     }
 
     private void insert(ListIterator<String> levels, final Node inserted) throws DuplicateKeyException {
-        ensureCurrentNodeIsNotInsertedOne(levels);
-        final String currentLevel = levels.next();
-        Node next = children.get(currentLevel);
-        if (next == null) {
-            InsertIntoCurrentPosition(currentLevel, levels, inserted);
+        if (levels.hasNext()) {
+            final String currentLevel = levels.next();
+            Node next = children.get(currentLevel);
+            if (next == null) {
+                insertIntoCurrentPosition(currentLevel, levels, inserted);
+            } else {
+                next.insert(levels, inserted);
+            }
         } else {
-            next.insert(levels, inserted);
+            insertIntoCurrentPosition("", levels, inserted);
         }
     }
 
-    private void InsertIntoCurrentPosition(String currentLevel, ListIterator<String> levels, Node inserted) throws DuplicateKeyException {
+    private void insertIntoCurrentPosition(String currentLevel, ListIterator<String> levels, Node inserted) throws DuplicateKeyException {
         final int nextIteratorPosition = levels.nextIndex();
         Node newNode = createNotExistingNodes(currentLevel, levels, inserted);
         Node previousNodeOnLevel = children.putIfAbsent(newNode.name, newNode);
         if (previousNodeOnLevel != null) {
             // other thread may already insert some nodes in hierarchy
             ensureCurrentNodeIsNotInsertedOne(levels);
-            MoveBack(levels, nextIteratorPosition);
+            moveBack(levels, nextIteratorPosition);
             previousNodeOnLevel.insert(levels, inserted);
         }
     }
@@ -123,7 +164,13 @@ public class Node {
         }
     }
 
-    private void MoveBack(ListIterator<String> iterator, final int position) {
+    private void ensureExisting(Node child, String name) throws UnknownKeyException {
+        if (child == null) {
+            throw new UnknownKeyException(String.format("There is no child with key %s", name));
+        }
+    }
+
+    private void moveBack(ListIterator<String> iterator, final int position) {
         while (iterator.nextIndex() != position + 1 || iterator.previousIndex() != position - 1) {
             iterator.previous();
         }

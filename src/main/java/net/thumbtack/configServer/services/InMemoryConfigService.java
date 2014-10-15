@@ -2,7 +2,6 @@ package net.thumbtack.configServer.services;
 
 import net.thumbtack.configServer.domain.Node;
 import net.thumbtack.configServer.domain.NodePath;
-import net.thumbtack.configServer.domain.Tree;
 import net.thumbtack.configServer.thrift.ConfigService;
 import net.thumbtack.configServer.thrift.DuplicateKeyException;
 import net.thumbtack.configServer.thrift.InvalidKeyException;
@@ -15,13 +14,13 @@ import java.util.List;
  * Represents a configuration service that stores data in memory.
  */
 public class InMemoryConfigService implements ConfigService.Iface {
-    private Tree tree;
+    private Node root;
 
-    public InMemoryConfigService(Tree tree) {
-        this.tree = tree;
+    public InMemoryConfigService(Node treeRoot) {
+        this.root = treeRoot;
     }
 
-    public InMemoryConfigService() { this(new Tree()); }
+    public InMemoryConfigService() { this(new Node("")); }
 
     @Override
     public void create(final String key) throws DuplicateKeyException, InvalidKeyException, TException {
@@ -35,17 +34,20 @@ public class InMemoryConfigService implements ConfigService.Iface {
         NodePath pathToParent = path.getPathExceptLastLevel();
         Node node = new Node(nodeName, value);
 
-        tree.add(pathToParent, node);
+        root.insert(pathToParent, node);
     }
 
     @Override
     public void remove(final String key) throws UnknownKeyException, InvalidKeyException, TException {
-
+        NodePath path = new NodePath(key);
+        root.remove(path);
     }
 
     @Override
     public boolean exists(final String key) throws TException {
-        return false;
+        NodePath path = new NodePath(key);
+
+        return root.exists(path);
     }
 
     @Override
