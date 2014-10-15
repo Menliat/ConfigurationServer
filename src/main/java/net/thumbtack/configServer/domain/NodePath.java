@@ -7,7 +7,9 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 /**
  * NodePath is a path to some node in tree.
@@ -52,10 +54,16 @@ public class NodePath {
     }
 
     /**
-     * @return path of the parent or the same path if there is no parent.
-     * @throws InvalidKeyException
+     * @return new bidirectional iterator through levels.
      */
-    public NodePath getPathExceptLastLevel() throws InvalidKeyException {
+    public ListIterator<String> getLevelsIterator() {
+        return getLevels().listIterator();
+    }
+
+    /**
+     * @return path of the parent or the same path if there is no parent.
+     */
+    public NodePath getPathExceptLastLevel() {
         final Path parent = path.getParent();
         if (parent == null) {
             return this;

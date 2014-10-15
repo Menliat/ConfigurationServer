@@ -1,6 +1,9 @@
 package net.thumbtack.configServer.domain;
 
+import com.google.common.base.Strings;
 import net.thumbtack.configServer.thrift.DuplicateKeyException;
+import net.thumbtack.configServer.thrift.InvalidKeyException;
+import net.thumbtack.configServer.thrift.UnknownKeyException;
 
 import java.util.ListIterator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,11 +31,44 @@ public class Node {
         }
     }
 
+    public Node(final String name, Node... children) {
+        this(name, "", children);
+    }
+
     /**
      * Constructs a node with given name and default value "".
      * @param name
      */
     public Node(final String name) { this(name, ""); }
+
+    /**
+     * Returns a child of the current node.
+     * @param name child name
+     * @return child node if presented
+     * @throws UnknownKeyException if there is no child with the given name.
+     */
+    public Node getChild(String name) throws UnknownKeyException {
+        Node child = children.get(name);
+        if (child == null) {
+            throw new UnknownKeyException(String.format("There is no child with key %s", name));
+        } else {
+            return child;
+        }
+    }
+
+    /**
+     * Finds the node in tree.
+     * @param path path to the required node.
+     * @return the required node if found
+     * @throws UnknownKeyException if there is no node with given path
+     */
+    public Node findNode(NodePath path) throws UnknownKeyException {
+        return find(path.getLevelsIterator());
+    }
+
+    public String getValue() {
+        return value;
+    }
 
     /**
      * Inserts the given node to the tree using the given path.
@@ -44,7 +80,18 @@ public class Node {
      * @throws DuplicateKeyException if tree already has a node with the same path and name
      */
     public void insert(final NodePath relativePath, final Node node) throws DuplicateKeyException {
-        insert(relativePath.getLevels().listIterator(), node);
+        insert(relativePath.getLevelsIterator(), node);
+    }
+
+    private Node find(ListIterator<String> levels) throws UnknownKeyException {
+        if (levels.hasNext()) {
+            final String currentLevel = levels.next();
+            Node next = getChild(currentLevel);
+
+            return next.find(levels);
+        } else {
+            return this;
+        }
     }
 
     private void insert(ListIterator<String> levels, final Node inserted) throws DuplicateKeyException {
@@ -61,7 +108,7 @@ public class Node {
     private void InsertIntoCurrentPosition(String currentLevel, ListIterator<String> levels, Node inserted) throws DuplicateKeyException {
         final int nextIteratorPosition = levels.nextIndex();
         Node newNode = createNotExistingNodes(currentLevel, levels, inserted);
-        Node previousNodeOnLevel = children.putIfAbsent(currentLevel, newNode);
+        Node previousNodeOnLevel = children.putIfAbsent(newNode.name, newNode);
         if (previousNodeOnLevel != null) {
             // other thread may already insert some nodes in hierarchy
             ensureCurrentNodeIsNotInsertedOne(levels);
@@ -84,13 +131,15 @@ public class Node {
 
     private Node createNotExistingNodes(final String currentLevel, ListIterator<String> notPresentedLevels, final Node inserted) {
         if (notPresentedLevels.hasNext()) {
-            Node root = new Node(currentLevel);
             final Node child = createNotExistingNodes(notPresentedLevels.next(), notPresentedLevels, inserted);
-            root.children.put(child.name, child);
 
-            return root;
+            return new Node(currentLevel, child);
         } else {
-            return inserted;
+            if (Strings.isNullOrEmpty(currentLevel)) {
+                return inserted;
+            } else {
+                return new Node(currentLevel, inserted);
+            }
         }
     }
 }
