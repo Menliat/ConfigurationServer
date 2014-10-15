@@ -11,6 +11,9 @@ import org.apache.thrift.TException;
 
 import java.util.List;
 
+/**
+ * Represents a configuration service that stores data in memory.
+ */
 public class InMemoryConfigService implements ConfigService.Iface {
     private Tree tree;
 
@@ -21,12 +24,12 @@ public class InMemoryConfigService implements ConfigService.Iface {
     public InMemoryConfigService() { this(new Tree()); }
 
     @Override
-    public void create(String key) throws DuplicateKeyException, InvalidKeyException, TException {
+    public void create(final String key) throws DuplicateKeyException, InvalidKeyException, TException {
         createWithValue(key, "");
     }
 
     @Override
-    public void createWithValue(String key, String value) throws DuplicateKeyException, InvalidKeyException, TException {
+    public void createWithValue(final String key, final String value) throws DuplicateKeyException, InvalidKeyException, TException {
         NodePath path = new NodePath(key);
         String nodeName = path.getLastLevel();
         NodePath pathToParent = path.getPathExceptLastLevel();
@@ -36,27 +39,27 @@ public class InMemoryConfigService implements ConfigService.Iface {
     }
 
     @Override
-    public void remove(String key) throws UnknownKeyException, InvalidKeyException, TException {
+    public void remove(final String key) throws UnknownKeyException, InvalidKeyException, TException {
 
     }
 
     @Override
-    public boolean exists(String key) throws TException {
+    public boolean exists(final String key) throws TException {
         return false;
     }
 
     @Override
-    public String getValue(String key) throws UnknownKeyException, InvalidKeyException, TException {
+    public String getValue(final String key) throws UnknownKeyException, InvalidKeyException, TException {
         return "ololo";
     }
 
     @Override
-    public void setValue(String key, String value) throws UnknownKeyException, InvalidKeyException, TException {
+    public void setValue(final String key, final String value) throws UnknownKeyException, InvalidKeyException, TException {
 
     }
 
     @Override
-    public List<String> getChildren(String key) throws UnknownKeyException, InvalidKeyException, TException {
+    public List<String> getChildren(final String key) throws UnknownKeyException, InvalidKeyException, TException {
         return null;
     }
 }

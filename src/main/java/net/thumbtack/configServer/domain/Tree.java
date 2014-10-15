@@ -7,7 +7,7 @@ public class Tree {
 
     public Tree() { root = new Node(""); }
 
-    public void add(NodePath path, Node node) throws DuplicateKeyException {
+    public void add(final NodePath path, final Node node) throws DuplicateKeyException {
         root.insert(path, node);
     }
 }
