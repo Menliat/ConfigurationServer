@@ -7,6 +7,10 @@ import net.thumbtack.configServer.thrift.DuplicateKeyException;
 import net.thumbtack.configServer.thrift.InvalidKeyException;
 import net.thumbtack.configServer.thrift.UnknownKeyException;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.ext.XLogger;
+import org.slf4j.ext.XLoggerFactory;
 
 import java.util.Collections;
 import java.util.List;

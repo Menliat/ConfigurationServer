@@ -21,7 +21,7 @@ public class ConsoleClient {
             transport.open();
             log.debug("Query: ololo");
             String value = client.getValue("ololo");
-            log.debug("Returned: " + value);
+            log.debug("Returned: {}", value);
 
             transport.close();
         } catch (TTransportException e) {

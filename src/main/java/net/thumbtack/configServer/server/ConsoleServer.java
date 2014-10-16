@@ -1,6 +1,7 @@
 package net.thumbtack.configServer.server;
 
 import net.thumbtack.configServer.services.InMemoryConfigService;
+import net.thumbtack.configServer.services.LoggingConfigService;
 import net.thumbtack.configServer.thrift.ConfigService;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
@@ -11,16 +12,16 @@ import org.slf4j.LoggerFactory;
 
 public class ConsoleServer implements Runnable {
     private static final int PORT = 7911;
-    private static final Logger log = LoggerFactory.getLogger(ConsoleServer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConsoleServer.class);
 
     @Override
     public void run() {
         try {
             TServerSocket serverTransport = new TServerSocket(PORT);
-            ConfigService.Processor processor = new ConfigService.Processor(new InMemoryConfigService());
+            ConfigService.Processor processor = new ConfigService.Processor(new LoggingConfigService(new InMemoryConfigService()));
             TServer server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).processor(processor));
 
-            log.info("Starting server on port " + PORT);
+            LOG.info("Starting server on port {}", PORT);
 
             server.serve();
         } catch (TTransportException e) {
