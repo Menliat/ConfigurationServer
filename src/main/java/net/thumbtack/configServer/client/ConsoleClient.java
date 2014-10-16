@@ -1,5 +1,6 @@
 package net.thumbtack.configServer.client;
 
+import com.google.common.base.Function;
 import net.thumbtack.configServer.thrift.ConfigService;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.XMLConfiguration;
@@ -10,6 +11,18 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.ext.XLogger;
 import org.slf4j.ext.XLoggerFactory;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static com.google.common.collect.Lists.transform;
 
 public class ConsoleClient {
     private static final XLogger LOG = XLoggerFactory.getXLogger(ConsoleClient.class);
@@ -25,23 +38,53 @@ public class ConsoleClient {
 
             transport.open();
             LOG.info("Listening started");
+            evaluateCommands(System.in, client);
 
-            String value = client.getValue("ololo");
-            LOG.debug("Returned: {}", value);
-        } catch (TTransportException e) {
+        } catch (Exception e) {
             LOG.catching(e);
-        } catch (TException e) {
-            LOG.catching(e);
-        } catch (ConfigurationException e) {
-            LOG.catching(e);
-        }
-        finally {
+        } finally {
             if (transport != null) {
                 transport.close();
             }
 
             LOG.info("Listening stopped");
         }
+    }
+
+    private static void evaluateCommands(InputStream stream, ConfigService.Client client) throws TException, IOException, NoSuchMethodException {
+        BufferedReader commandsReader = new BufferedReader(new InputStreamReader(stream));
+        LOG.info("USAGE: <method name> \"<parameter1>\" \"<parameter2>\"");
+        while (true) {
+            try {
+                String command = commandsReader.readLine();
+                if (command.equalsIgnoreCase("exit")) {
+                    break;
+                }
+                String[] arguments = command.split("\\s");
+                String methodName = arguments[0];
+                List<Object> otherArguments = transform(Arrays.asList(Arrays.copyOfRange(arguments, 1, arguments.length)), new Function<String, Object>() {
+                    @Override
+                    public Object apply(String s) {
+                        return s.trim().replaceAll("1", "").trim();
+                    }
+                });
+
+                Class[] methodParameters = new Class[otherArguments.size()];
+                Arrays.fill(methodParameters, String.class);
+                Method operation = client.getClass().getMethod(methodName, methodParameters);
+
+                Object returned = operation.invoke(client, otherArguments.toArray());
+                LOG.info("Returned: {}", returned);
+
+            } catch (NoSuchMethodException ex) {
+                LOG.info("Wrong command");
+            } catch (InvocationTargetException ex) {
+                LOG.info("Catched exception of type {}", ex.getCause().getClass().getSimpleName());
+            } catch (Exception e) {
+                LOG.catching(e);
+            }
+        }
+
     }
 
     private static TTransport configureTransport(XMLConfiguration config) {
