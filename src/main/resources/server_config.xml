@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+    <server>
+        <port>1522</port>
+        <minThreadsCount>10</minThreadsCount>
+        <maxThreadsCount>32</maxThreadsCount>
+    </server>
+</config>

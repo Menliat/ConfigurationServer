@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+    <client>
+        <url>localhost</url>
+        <port>1522</port>
+    </client>
+</config>
