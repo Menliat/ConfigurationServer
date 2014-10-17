@@ -8,6 +8,13 @@
     <name>config-server Maven Webapp</name>
     <url>http://maven.apache.org</url>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>dtrott</id>
+            <url>http://maven.davidtrott.com/repository</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.thrift</groupId>
@@ -82,12 +89,18 @@
 
     <build>
         <finalName>config-server</finalName>
+        <testSourceDirectory>${project.basedir}/src/test/unit/java</testSourceDirectory>
+        <testResources>
+            <testResource>
+                <directory>${project.basedir}/src/test/resources</directory>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>
-                    <webXml>src\main\java\net\thumbtack\configServer\web\WEB-INF\web.xml</webXml>
+                    <webXml>src\main\web\WEB-INF\web.xml</webXml>
                 </configuration>
                 <version>2.4</version>
             </plugin>
