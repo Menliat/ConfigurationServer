@@ -22,7 +22,7 @@ public class Node {
 
     public Node(final String name, final String value) {
         this.name = name;
-        this.value = value;
+        this.value = value == null ? "" : value;
         children = new ConcurrentHashMap<String, Node>();
     }
 

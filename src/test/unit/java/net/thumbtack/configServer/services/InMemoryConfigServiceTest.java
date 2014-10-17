@@ -43,6 +43,15 @@ public class InMemoryConfigServiceTest {
     }
 
     @Test
+    public void whenPathHasSlashAtStart_Create_ShouldCreateTheRootChild() throws TException {
+        service.create("/key");
+
+        boolean exists = service.exists("key");
+
+        assertThat(exists, is(true));
+    }
+
+    @Test
     public void whenValueIsSpecified_Create_ShouldUseThisValue() throws TException {
         service.createWithValue("key", "value");
 
