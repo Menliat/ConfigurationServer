@@ -3,7 +3,7 @@
 <config>
     <server>
         <port>1522</port>
-        <minThreadsCount>10</minThreadsCount>
+        <minThreadsCount>8</minThreadsCount>
         <maxThreadsCount>32</maxThreadsCount>
     </server>
 </config>
