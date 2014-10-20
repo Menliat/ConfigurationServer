@@ -4,6 +4,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.thumbtack.configServer.domain.NodeDump;
 
+/**
+ * This object is able to restore/convert NodeDump from/to json String.
+ * Entire object will be placed into memory.
+ */
 public class JsonNodeDumpSerializer implements Deserializer<String, NodeDump>, Serializer<NodeDump, String> {
     private final String encoding;
     private final Gson gson;

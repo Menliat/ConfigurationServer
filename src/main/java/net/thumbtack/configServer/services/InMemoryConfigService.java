@@ -1,7 +1,9 @@
 package net.thumbtack.configServer.services;
 
 import net.thumbtack.configServer.domain.Node;
+import net.thumbtack.configServer.domain.NodeDump;
 import net.thumbtack.configServer.domain.NodePath;
+import net.thumbtack.configServer.serialization.StreamSerializer;
 import net.thumbtack.configServer.thrift.ConfigService;
 import net.thumbtack.configServer.thrift.DuplicateKeyException;
 import net.thumbtack.configServer.thrift.InvalidKeyException;
@@ -12,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.ext.XLogger;
 import org.slf4j.ext.XLoggerFactory;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
@@ -78,9 +81,17 @@ public class InMemoryConfigService implements ConfigService.Iface {
         return childrenNames;
     }
 
+    public NodeDump getDump() {
+        return root.createDump();
+    }
+
     private Node findNode(String key) throws InvalidKeyException, UnknownKeyException {
         NodePath path = new NodePath(key);
         return root.findNode(path);
+    }
+
+    public void restore(NodeDump dump) {
+        root.restoreFromDump(dump);
     }
 }
 

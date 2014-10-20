@@ -8,6 +8,10 @@ import net.thumbtack.configServer.domain.NodeDump;
 
 import java.io.*;
 
+/**
+ * This is a stream serializer/deserializer for NodeDump which converts the object to JSON.
+ * It can read NodeDump from InputStream and write it into OutputStream.
+ */
 public class JsonNodeDumpStreamSerializer implements StreamSerializer<NodeDump>, Deserializer<InputStream, NodeDump> {
     private final String encoding;
     private final Gson gson;

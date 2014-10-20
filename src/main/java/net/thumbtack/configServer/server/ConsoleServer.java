@@ -1,5 +1,7 @@
 package net.thumbtack.configServer.server;
 
+import net.thumbtack.configServer.domain.NodeDump;
+import net.thumbtack.configServer.serialization.*;
 import net.thumbtack.configServer.services.InMemoryConfigService;
 import net.thumbtack.configServer.services.LoggingConfigService;
 import net.thumbtack.configServer.thrift.ConfigService;
@@ -9,31 +11,123 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.ext.XLogger;
 import org.slf4j.ext.XLoggerFactory;
 
-public class ConsoleServer implements Runnable {
-    private static final XLogger LOG = XLoggerFactory.getXLogger(ConsoleServer.class);
+import java.io.*;
 
-    @Override
-    public void run() {
+public class ConsoleServer {
+    private static final XLogger LOG = XLoggerFactory.getXLogger(ConsoleServer.class);
+    private static String dumpFileName = null;
+    private static StreamSerializer<NodeDump> dumpSerializer = null;
+    private static Deserializer<InputStream, NodeDump> dumpDeserializer = null;
+
+    public static void main(String[] args) {
         try {
             final XMLConfiguration config = new XMLConfiguration("server_config.xml");
-            final LoggingConfigService configService = new LoggingConfigService(new InMemoryConfigService());
+            final InMemoryConfigService configService = new InMemoryConfigService();
+            final TServer server = configureServer(config, new LoggingConfigService(configService));
 
-            TServer server = configureServer(config, configService);
-
-            server.serve();
+            startServerThread(server);
+            configureSerializers(config);
+            restoreServerState(configService);
+            evaluateCommands(server, configService);
         } catch (TTransportException e) {
-            LOG.catching(e);
+            LOG.error("Failed to setup transport", e);
         } catch (ConfigurationException e) {
+            LOG.error("Failed to read configuration", e);
+        } catch (IOException e) {
+            LOG.catching(e);
+        } catch (SerializationException e) {
             LOG.catching(e);
         }
     }
 
-    private TServer configureServer(XMLConfiguration config, LoggingConfigService configService) throws TTransportException {
+    private static void configureSerializers(XMLConfiguration config) {
+        final String encoding = config.getString("serialization.encoding");
+        final JsonNodeDumpStreamSerializer serializer = new JsonNodeDumpStreamSerializer(encoding);
+        dumpSerializer = serializer;
+        dumpDeserializer = serializer;
+        dumpFileName = config.getString("serialization.dumpFileName");
+    }
+
+    private static void startServerThread(final TServer server) {
+        final Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                server.serve();
+            }
+        });
+        thread.start();
+    }
+
+    private static void evaluateCommands(TServer server, InMemoryConfigService configService) throws IOException, SerializationException {
+        LOG.info("Reading commands");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        boolean shouldReceiveCommands = true;
+        while (shouldReceiveCommands) {
+            String command = reader.readLine();
+            switch (command) {
+                case "exit": {
+                    saveServerState(configService);
+                    stopServer(server);
+                    shouldReceiveCommands = false;
+                    break;
+                }
+                case "dump": {
+                    saveServerState(configService);
+                    break;
+                }
+                case "restore": {
+                    restoreServerState(configService);
+                    break;
+                }
+                default: {
+                    LOG.info("Unknown command.");
+                    break;
+                }
+
+            }
+        }
+    }
+
+    private static void stopServer(TServer server) {
+        LOG.info("Stopping the server");
+        server.stop();
+        LOG.info("Server stopped");
+    }
+
+    private static void saveServerState(InMemoryConfigService configService) throws SerializationException, IOException {
+        LOG.info("Saving service state to {}", dumpFileName);
+        FileOutputStream outputStream = null;
+        try {
+            NodeDump dump = configService.getDump();
+            outputStream = new FileOutputStream(dumpFileName);
+            dumpSerializer.serialize(dump, outputStream);
+            LOG.info("Successfully saved");
+        } finally {
+            if (outputStream != null) {
+                outputStream.close();
+            }
+        }
+    }
+
+    private static void restoreServerState(InMemoryConfigService configService) throws SerializationException, IOException {
+        LOG.info("Restoring service state from {}", dumpFileName);
+        FileInputStream inputStream = null;
+        try {
+            inputStream = new FileInputStream(dumpFileName);
+            NodeDump dump = dumpDeserializer.deserialize(inputStream);
+            configService.restore(dump);
+            LOG.info("Successfully restored");
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        }
+    }
+
+    private static TServer configureServer(XMLConfiguration config, LoggingConfigService configService) throws TTransportException {
         final int port = config.getInt("server.port");
         final int maxThreads = config.getInt("server.maxThreadsCount", 50);
         final int minThreads = config.getInt("server.minThreadsCount", 5);
@@ -41,17 +135,13 @@ public class ConsoleServer implements Runnable {
         TServerSocket serverTransport = new TServerSocket(port);
         ConfigService.Processor processor = new ConfigService.Processor(configService);
         TServer server = new TThreadPoolServer(
-            new TThreadPoolServer.Args(serverTransport)
-                .maxWorkerThreads(maxThreads)
-                .minWorkerThreads(minThreads)
-                .processor(processor)
+                new TThreadPoolServer.Args(serverTransport)
+                        .maxWorkerThreads(maxThreads)
+                        .minWorkerThreads(minThreads)
+                        .processor(processor)
         );
         LOG.info("Starting server on port {}", port);
 
         return server;
-    }
-
-    public static void main(String[] args) {
-        new Thread(new ConsoleServer()).run();
     }
 }
