@@ -5,8 +5,6 @@ import net.thumbtack.configServer.serialization.*;
 import net.thumbtack.configServer.services.InMemoryConfigService;
 import net.thumbtack.configServer.services.LoggingConfigService;
 import net.thumbtack.configServer.thrift.ConfigService;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
@@ -15,6 +13,7 @@ import org.slf4j.ext.XLogger;
 import org.slf4j.ext.XLoggerFactory;
 
 import java.io.*;
+import java.util.Properties;
 
 public class ConsoleServer {
     private static final XLogger LOG = XLoggerFactory.getXLogger(ConsoleServer.class);
@@ -24,7 +23,11 @@ public class ConsoleServer {
 
     public static void main(String[] args) {
         try {
-            final XMLConfiguration config = new XMLConfiguration("server_config.xml");
+            Properties config = new Properties();
+            String propFileName = "server_config.properties";
+            InputStream inputStream = ConsoleServer.class.getClassLoader().getResourceAsStream(propFileName);
+            config.load(inputStream);
+
             final InMemoryConfigService configService = new InMemoryConfigService();
             final TServer server = configureServer(config, new LoggingConfigService(configService));
 
@@ -34,8 +37,6 @@ public class ConsoleServer {
             evaluateCommands(server, configService);
         } catch (TTransportException e) {
             LOG.error("Failed to setup transport", e);
-        } catch (ConfigurationException e) {
-            LOG.error("Failed to read configuration", e);
         } catch (IOException e) {
             LOG.catching(e);
         } catch (SerializationException e) {
@@ -43,12 +44,12 @@ public class ConsoleServer {
         }
     }
 
-    private static void configureSerializers(XMLConfiguration config) {
-        final String encoding = config.getString("serialization.encoding");
+    private static void configureSerializers(Properties config) {
+        final String encoding = config.getProperty("serialization.encoding");
         final JsonNodeDumpStreamSerializer serializer = new JsonNodeDumpStreamSerializer(encoding);
         dumpSerializer = serializer;
         dumpDeserializer = serializer;
-        dumpFileName = config.getString("serialization.dumpFileName");
+        dumpFileName = config.getProperty("serialization.dumpFileName");
     }
 
     private static void startServerThread(final TServer server) {
@@ -127,10 +128,10 @@ public class ConsoleServer {
         }
     }
 
-    private static TServer configureServer(XMLConfiguration config, LoggingConfigService configService) throws TTransportException {
-        final int port = config.getInt("server.port");
-        final int maxThreads = config.getInt("server.maxThreadsCount", 50);
-        final int minThreads = config.getInt("server.minThreadsCount", 5);
+    private static TServer configureServer(Properties config, LoggingConfigService configService) throws TTransportException {
+        final int port = Integer.parseInt(config.getProperty("server.port"));
+        final int maxThreads = Integer.parseInt(config.getProperty("server.maxThreadsCount", "50"));
+        final int minThreads = Integer.parseInt(config.getProperty("server.minThreadsCount", "5"));
 
         TServerSocket serverTransport = new TServerSocket(port);
         ConfigService.Processor processor = new ConfigService.Processor(configService);
