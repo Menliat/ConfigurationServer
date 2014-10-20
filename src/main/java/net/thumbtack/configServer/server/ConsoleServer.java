@@ -4,6 +4,7 @@ import net.thumbtack.configServer.domain.NodeDump;
 import net.thumbtack.configServer.serialization.*;
 import net.thumbtack.configServer.services.InMemoryConfigService;
 import net.thumbtack.configServer.services.LoggingConfigService;
+import net.thumbtack.configServer.services.LoggingInvocationHandler;
 import net.thumbtack.configServer.thrift.ConfigService;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
@@ -13,6 +14,7 @@ import org.slf4j.ext.XLogger;
 import org.slf4j.ext.XLoggerFactory;
 
 import java.io.*;
+import java.lang.reflect.Proxy;
 import java.util.Properties;
 
 public class ConsoleServer {
@@ -23,13 +25,10 @@ public class ConsoleServer {
 
     public static void main(String[] args) {
         try {
-            Properties config = new Properties();
-            String propFileName = "server_config.properties";
-            InputStream inputStream = ConsoleServer.class.getClassLoader().getResourceAsStream(propFileName);
-            config.load(inputStream);
+            Properties config = initializeConfig();
 
             final InMemoryConfigService configService = new InMemoryConfigService();
-            final TServer server = configureServer(config, new LoggingConfigService(configService));
+            final TServer server = configureServer(config, wrapWithTracing(configService));
 
             startServerThread(server);
             configureSerializers(config);
@@ -42,6 +41,21 @@ public class ConsoleServer {
         } catch (SerializationException e) {
             LOG.catching(e);
         }
+    }
+
+    private static Properties initializeConfig() throws IOException {
+        Properties config = new Properties();
+        String propFileName = "server_config.properties";
+        InputStream inputStream = ConsoleServer.class.getClassLoader().getResourceAsStream(propFileName);
+        config.load(inputStream);
+        return config;
+    }
+
+    private static ConfigService.Iface wrapWithTracing(InMemoryConfigService configService) {
+        return (ConfigService.Iface) Proxy.newProxyInstance(
+                ConfigService.Iface.class.getClassLoader(),
+                new Class[]{ ConfigService.Iface.class },
+                new LoggingInvocationHandler(configService));
     }
 
     private static void configureSerializers(Properties config) {
@@ -128,7 +142,7 @@ public class ConsoleServer {
         }
     }
 
-    private static TServer configureServer(Properties config, LoggingConfigService configService) throws TTransportException {
+    private static TServer configureServer(Properties config, ConfigService.Iface configService) throws TTransportException {
         final int port = Integer.parseInt(config.getProperty("server.port"));
         final int maxThreads = Integer.parseInt(config.getProperty("server.maxThreadsCount", "50"));
         final int minThreads = Integer.parseInt(config.getProperty("server.minThreadsCount", "5"));
