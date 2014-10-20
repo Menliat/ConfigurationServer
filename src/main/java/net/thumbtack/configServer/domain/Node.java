@@ -1,14 +1,15 @@
 package net.thumbtack.configServer.domain;
 
+import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import net.thumbtack.configServer.thrift.DuplicateKeyException;
 import net.thumbtack.configServer.thrift.InvalidKeyException;
 import net.thumbtack.configServer.thrift.UnknownKeyException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.google.common.collect.Collections2.transform;
 
 /**
  * Node is a class representing a tree node.
@@ -16,14 +17,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * This class is completely thread-safe, see method documentation for more details.
  */
 public class Node {
-    private final String name;
+    private String name;
     private ConcurrentHashMap<String, Node> children;
     private String value;
 
     public Node(final String name, final String value) {
-        this.name = name;
-        this.value = value == null ? "" : value;
-        children = new ConcurrentHashMap<String, Node>();
+        initializeWith(name, value, new ConcurrentHashMap<String, Node>());
     }
 
     public Node(final String name, final String value, Node... children) {
@@ -37,16 +36,19 @@ public class Node {
         this(name, "", children);
     }
 
+    public Node(NodeDump dump) {
+        restoreFromDump(dump);
+    }
+
     /**
      * Constructs a node with given name and default value "".
      * @param name
      */
     public Node(final String name) { this(name, ""); }
 
+    public String getName() { return name; }
     public void setValue(String value) { this.value = value; }
-    public String getValue() {
-        return value;
-    }
+    public String getValue() { return value; }
 
     /**
      * Finds the node in tree.
@@ -105,6 +107,43 @@ public class Node {
      */
     public List<String> getChildrenNames() {
         return Collections.list(children.keys());
+    }
+
+    /**
+     * Saves the state of the given node to an object used to restore him later.
+     * This method use weakly-consistent iterator over children, it will
+     * traverse all elements, but child elements values can be changed while iterating.
+     * @return a dump of state of the given node
+     */
+    public synchronized NodeDump createDump() {
+        Collection<NodeDump> childrenDumps = transform(children.values(), new Function<Node, NodeDump>() {
+            @Override
+            public NodeDump apply(Node node) {
+                return node.createDump();
+            }
+        });
+
+        return new NodeDump(name, value, childrenDumps);
+    }
+
+    /**
+     * Restores the current node state using parameters from dump.
+     * @param dump a dump of some node state
+     */
+    public synchronized void restoreFromDump(NodeDump dump) {
+        Collection<NodeDump> childrenDumps = dump.getChildren();
+        ConcurrentHashMap<String, Node> children = new ConcurrentHashMap<>(childrenDumps.size());
+        for (NodeDump childDump : childrenDumps) {
+            Node child = new Node(childDump);
+            children.put(child.name, child);
+        }
+        initializeWith(dump.getName(), dump.getValue(), children);
+    }
+
+    private void initializeWith(String name, String value, ConcurrentHashMap<String, Node> children) {
+        this.name = name;
+        this.value = value == null ? "" : value;
+        this.children = children;
     }
 
     private Node getChild(String name) throws UnknownKeyException {

@@ -8,8 +8,12 @@ import net.thumbtack.configServer.thrift.UnknownKeyException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -134,6 +138,32 @@ public class NodeTest {
         List<String> names = node.getChildrenNames();
 
         assertThat(names, containsInAnyOrder("child1", "child2", "child3"));
+    }
+
+    @Test
+    public void testCreateDump() {
+        Node node = new Node("root", "value", new Node("child1"), new Node("child2"));
+
+        NodeDump dump = node.createDump();
+
+        assertThat(dump.getName(), is("root"));
+        assertThat(dump.getValue(), is("value"));
+        assertThat(dump.getChildren().size(), is(2));
+    }
+
+    @Test
+    public void testRestoreFromDump() {
+        Node node = new Node("some root", "old value", new Node("child1"));
+        NodeDump dump = new NodeDump("root", "value",
+            new NodeDump("child1", "value"),
+            new NodeDump("child2", "value")
+        );
+
+        node.restoreFromDump(dump);
+
+        assertThat(node.getValue(), is("value"));
+        assertThat(node.getName(), is("root"));
+        assertThat(node.getChildrenNames(), containsInAnyOrder("child1", "child2"));
     }
 
     private void assertNodesExistence(boolean expected, Node root, String... paths) throws InvalidKeyException {
