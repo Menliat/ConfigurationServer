@@ -3,19 +3,11 @@ package net.thumbtack.configServer.services;
 import net.thumbtack.configServer.domain.Node;
 import net.thumbtack.configServer.domain.NodeDump;
 import net.thumbtack.configServer.domain.NodePath;
-import net.thumbtack.configServer.serialization.StreamSerializer;
-import net.thumbtack.configServer.thrift.ConfigService;
-import net.thumbtack.configServer.thrift.DuplicateKeyException;
-import net.thumbtack.configServer.thrift.InvalidKeyException;
-import net.thumbtack.configServer.thrift.UnknownKeyException;
+import net.thumbtack.configServer.domain.Scheduler;
+import net.thumbtack.configServer.thrift.*;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
-
-import java.io.Serializable;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -23,9 +15,11 @@ import java.util.List;
  */
 public class InMemoryConfigService implements ConfigService.Iface {
     private Node root;
+    private Scheduler scheduler = null;
 
     public InMemoryConfigService(Node treeRoot) {
         this.root = treeRoot;
+        this.scheduler = new Scheduler();
     }
 
     public InMemoryConfigService() { this(new Node("")); }
@@ -43,6 +37,12 @@ public class InMemoryConfigService implements ConfigService.Iface {
         Node node = new Node(nodeName, value);
 
         root.insert(pathToParent, node);
+    }
+
+    @Override
+    public void createTemporaryWithValue(String key, String value, long msTimeout) throws DuplicateKeyException, InvalidKeyException, InvalidTimeoutException, TException {
+        createWithValue(key, value);
+        scheduleItemRemoving(key, msTimeout);
     }
 
     @Override
@@ -70,6 +70,7 @@ public class InMemoryConfigService implements ConfigService.Iface {
         Node found = findNode(key);
 
         found.setValue(value);
+        scheduler.reschedule(key);
     }
 
     @Override
@@ -85,13 +86,34 @@ public class InMemoryConfigService implements ConfigService.Iface {
         return root.createDump();
     }
 
+    public void restore(NodeDump dump) {
+        root.restoreFromDump(dump);
+    }
+
+    private void scheduleItemRemoving(String key, long msTimeout) throws InvalidTimeoutException {
+        scheduler.schedule(key, new RemoveItemWithKeyTask(key), msTimeout);
+    }
+
     private Node findNode(String key) throws InvalidKeyException, UnknownKeyException {
         NodePath path = new NodePath(key);
         return root.findNode(path);
     }
 
-    public void restore(NodeDump dump) {
-        root.restoreFromDump(dump);
+    private class RemoveItemWithKeyTask implements Runnable {
+        private String key = null;
+
+        public RemoveItemWithKeyTask(String key) {
+            this.key = key;
+        }
+
+        @Override
+        public void run() {
+            try {
+                remove(key);
+            } catch (TException e) {
+                // other threads can already remove the given item.
+            }
+        }
     }
 }
 

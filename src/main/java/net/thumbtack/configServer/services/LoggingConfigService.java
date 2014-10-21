@@ -1,9 +1,6 @@
 package net.thumbtack.configServer.services;
 
-import net.thumbtack.configServer.thrift.ConfigService;
-import net.thumbtack.configServer.thrift.DuplicateKeyException;
-import net.thumbtack.configServer.thrift.InvalidKeyException;
-import net.thumbtack.configServer.thrift.UnknownKeyException;
+import net.thumbtack.configServer.thrift.*;
 import org.apache.thrift.TException;
 import org.slf4j.ext.XLogger;
 import org.slf4j.ext.XLoggerFactory;
@@ -33,6 +30,18 @@ public class LoggingConfigService implements ConfigService.Iface {
             @Override
             public void run() throws TException {
                 internalService.createWithValue(key, value);
+            }
+        });
+        LOG.exit();
+    }
+
+    @Override
+    public void createTemporaryWithValue(final String key, final String value, final long msTimeout) throws DuplicateKeyException, InvalidKeyException, InvalidTimeoutException, TException {
+        LOG.entry(key, value, msTimeout);
+        logPossibleExceptions(new ThriftExceptionThrowingAction() {
+            @Override
+            public void run() throws TException {
+                internalService.createTemporaryWithValue(key, value, msTimeout);
             }
         });
         LOG.exit();

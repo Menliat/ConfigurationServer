@@ -1,11 +1,15 @@
 package net.thumbtack.configServer.services;
 
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
 import net.thumbtack.configServer.thrift.DuplicateKeyException;
 import net.thumbtack.configServer.thrift.InvalidKeyException;
+import net.thumbtack.configServer.thrift.InvalidTimeoutException;
 import net.thumbtack.configServer.thrift.UnknownKeyException;
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,6 +19,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
+@RunWith(JUnitParamsRunner.class)
 public class InMemoryConfigServiceTest {
 
     private InMemoryConfigService service;
@@ -46,9 +51,7 @@ public class InMemoryConfigServiceTest {
     public void whenPathHasSlashAtStart_Create_ShouldCreateTheRootChild() throws TException {
         service.create("/key");
 
-        boolean exists = service.exists("key");
-
-        assertThat(exists, is(true));
+        checkExistence("key", true);
     }
 
     @Test
@@ -64,16 +67,12 @@ public class InMemoryConfigServiceTest {
     public void whenNodeIsCreated_Exists_ShouldReturnTrue() throws TException {
         service.create("a/b/c");
 
-        final boolean exists = service.exists("a/b/c");
-
-        assertThat(exists, is(true));
+        checkExistence("a/b/c", true);
     }
 
     @Test
     public void whenNodeIsNotCreated_Exists_ShouldReturnFalse() throws TException {
-        final boolean exists = service.exists("a/b/c");
-
-        assertThat(exists, is(false));
+        checkExistence("a/b/c", false);
     }
 
     @Test(expected = UnknownKeyException.class)
@@ -86,9 +85,8 @@ public class InMemoryConfigServiceTest {
         service.create("key");
 
         service.remove("key");
-        final boolean exists = service.exists("key");
 
-        assertThat(exists, is(false));
+        checkExistence("key", false);
     }
 
     @Test
@@ -155,5 +153,46 @@ public class InMemoryConfigServiceTest {
         final List<String> children = service.getChildren("parent");
 
         assertThat(children, is(empty()));
+    }
+
+    @Test
+    @Parameters({"10, 5, true", "5, 10, false"})
+    public void testCreateTemporaryWithValue(long timeout, long timeToSleep, boolean expectedExistence) throws TException, InterruptedException {
+        service.createTemporaryWithValue("key", "value", timeout);
+
+        Thread.sleep(timeToSleep);
+
+        checkExistence("key", expectedExistence);
+    }
+
+    @Test
+    public void whenTemporaryValueIsCreated_SetValue_ShouldProlongItsLifetime() throws TException, InterruptedException {
+        service.createTemporaryWithValue("key", "value", 10);
+
+        Thread.sleep(5);
+        service.setValue("key", "new value");
+
+        Thread.sleep(6);
+        checkExistence("key", true);
+    }
+
+    @Test
+    public void whenTemporaryValueIsCreated_AndTimeoutIsExpiredAfterSetValue_TheNodeShouldBeRemoved() throws TException, InterruptedException {
+        service.createTemporaryWithValue("key", "value", 5);
+
+        service.setValue("key", "new value");
+
+        Thread.sleep(11);
+        checkExistence("key", false);
+    }
+
+    @Test(expected = InvalidTimeoutException.class)
+    public void testCreateTemporaryWithValue_whenTimeoutIsInvalid() throws TException {
+        service.createTemporaryWithValue("key", "value", -10);
+    }
+
+    private void checkExistence(String key, boolean expectedExistence) throws TException {
+        boolean exists = service.exists(key);
+        assertThat(exists, is(expectedExistence));
     }
 }

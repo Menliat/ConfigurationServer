@@ -62,15 +62,9 @@ public class ConsoleClient {
                 }
                 String[] arguments = command.split("\\s");
                 String methodName = arguments[0];
-                List<Object> otherArguments = transform(Arrays.asList(Arrays.copyOfRange(arguments, 1, arguments.length)), new Function<String, Object>() {
-                    @Override
-                    public Object apply(String s) {
-                        return s.trim().replaceAll("1", "").trim();
-                    }
-                });
+                List<Object> otherArguments = getMethodArguments(arguments);
 
-                Class[] methodParameters = new Class[otherArguments.size()];
-                Arrays.fill(methodParameters, String.class);
+                Class[] methodParameters = getClassesOfArguments(otherArguments);
                 Method operation = client.getClass().getMethod(methodName, methodParameters);
 
                 Object returned = operation.invoke(client, otherArguments.toArray());
@@ -85,6 +79,31 @@ public class ConsoleClient {
             }
         }
 
+    }
+
+    private static List<Object> getMethodArguments(String[] arguments) {
+        return transform(Arrays.asList(Arrays.copyOfRange(arguments, 1, arguments.length)), new Function<String, Object>() {
+            @Override
+            public Object apply(String s) {
+                String transformed = s.trim().replaceAll("\"", "").trim();
+                if (transformed.startsWith("l")) {
+                    return Long.parseLong(transformed.substring(1));
+                }
+                return transformed;
+            }
+        });
+    }
+
+    private static Class[] getClassesOfArguments(List<Object> otherArguments) {
+        Class[] methodParameters = new Class[otherArguments.size()];
+        for (int i = 0; i < otherArguments.size(); i++) {
+            if (otherArguments.get(i).getClass() == Long.class) {
+                methodParameters[i] = long.class;
+            } else {
+                methodParameters[i] = otherArguments.get(i).getClass();
+            }
+        }
+        return methodParameters;
     }
 
     private static TTransport configureTransport(XMLConfiguration config) {

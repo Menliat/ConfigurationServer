@@ -12,6 +12,10 @@ exception InvalidKeyException {
 	1: string message
 }
 
+exception InvalidTimeoutException {
+	1: string message
+}
+
 service ConfigService {
 
 	/**
@@ -31,6 +35,20 @@ service ConfigService {
 	 */
 	void createWithValue(1: string key, 2: string value) throws (1: DuplicateKeyException ex,
 2: InvalidKeyException ex2)
+
+	/**
+	 * Create a temporary node with specific key and value.
+	 * The node will disappear after the given timeout if the value will not be updated.
+	 * If someone updates the value, the lifetime of the node will be prolonged by the initial timeout.
+	 * @param key node key
+	 * @param value intial value to set
+	 * @param msTimeout timeout after which the node will be deleted if no updates occurred
+	 * @throws DuplicateKeyException if node with specified key already exists
+	 * @throws InvalidKeyException if specified key is empty or contains restricted chars
+	 * @throws InvalidTimeoutException if the timeout is not positive
+	 */
+	void createTemporaryWithValue(1: string key, 2: string value, 3: i64 msTimeout) throws (1: DuplicateKeyException ex,
+2: InvalidKeyException ex2, 3: InvalidTimeoutException ex3)
 
 	/**
 	 * Remove node by key
@@ -75,5 +93,4 @@ service ConfigService {
 	 */
 	list<string> getChildren(1: string key) throws (1: UnknownKeyException ex1,
 2: InvalidKeyException ex2)
-
 }
